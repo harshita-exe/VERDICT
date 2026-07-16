@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verdict — AI Code Review Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Georgia&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --hero-bg: #0A0B0D;
+    --panel-light: #FFFFFF;
+    --panel-light-alt: #F6F7F9;
+    --border-light: #E6E8EC;
+    --text-dark: #14161A;
+    --text-dim-dark: #6B7178;
+    --text-light: #F3F4F6;
+    --text-dim-light: #9BA1AC;
+    --accent-ice: #AFD9EC;
+    --accent-ice-deep: #7FC1DE;
+    --critical: #E0554A;
+    --high: #E08A3C;
+    --medium: #D9B23C;
+    --low: #8A909A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--panel-light-alt);
+    color: var(--text-dark);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  nav {
+    position: relative;
+    z-index: 3;
+    background: var(--hero-bg);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 18px 24px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1;
+  }
+
+  .brand-name {
+    font-weight: 800;
+    font-size: 19px;
+    color: var(--text-light);
+    letter-spacing: -0.01em;
+  }
+
+  .brand-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--accent-ice-deep);
+    letter-spacing: 0.08em;
+  }
+
+  .brand .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-ice);
+    box-shadow: 0 0 10px var(--accent-ice);
+  }
+
+  .nav-cta {
+    background: var(--text-light);
+    color: var(--hero-bg);
+    border: none;
+    font-weight: 600;
+    font-size: 13.5px;
+    padding: 9px 18px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  .hero {
+    position: relative;
+    background: var(--hero-bg);
+    padding: 90px 24px 220px;
+    overflow: hidden;
+    text-align: center;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 22% 30%, rgba(175,217,236,0.10), transparent 40%),
+      radial-gradient(circle at 82% 60%, rgba(175,217,236,0.08), transparent 45%);
+    pointer-events: none;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .hero h1 {
+    font-size: 56px;
+    line-height: 1.08;
+    font-weight: 700;
+    color: var(--text-light);
+    margin: 32px 0 22px;
+    letter-spacing: -0.02em;
+  }
+
+  .hero h1 em {
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent-ice);
+  }
+
+  .hero p {
+    color: var(--text-dim-light);
+    font-size: 17px;
+    line-height: 1.6;
+    max-width: 480px;
+    margin: 0 auto 36px;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .btn-primary {
+    background: var(--accent-ice);
+    color: #06201C;
+    border: none;
+    font-weight: 700;
+    font-size: 14.5px;
+    padding: 13px 26px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-light);
+    border: 1px solid rgba(255,255,255,0.25);
+    font-weight: 600;
+    font-size: 14.5px;
+    padding: 13px 26px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  .app-card {
+    position: relative;
+    z-index: 3;
+    max-width: 900px;
+    margin: -160px auto 60px;
+    background: var(--panel-light);
+    border-radius: 18px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.35);
+    overflow: hidden;
+  }
+
+  .app-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 26px;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--panel-light-alt);
+    padding: 4px;
+    border-radius: 999px;
+  }
+
+  .tab {
+    background: transparent;
+    color: var(--text-dim-dark);
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  .tab.active {
+    background: var(--text-dark);
+    color: var(--panel-light);
+  }
+
+  .cloud-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--text-dark);
+    color: var(--panel-light);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 999px;
+  }
+
+  .app-body { padding: 26px; }
+
+  textarea {
+    width: 100%;
+    min-height: 220px;
+    background: var(--panel-light-alt);
+    color: var(--text-dark);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    outline: none;
+    resize: vertical;
+    padding: 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+  }
+
+  .hint {
+    color: var(--text-dim-dark);
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  button.run-btn {
+    background: var(--text-dark);
+    color: var(--panel-light);
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 11px 22px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+  }
+
+  button.run-btn:hover { opacity: 0.85; }
+  button.run-btn:active { transform: scale(0.98); }
+  button.run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .upload-zone {
+    padding: 30px 20px;
+    text-align: center;
+    background: var(--panel-light-alt);
+    border: 1px dashed var(--border-light);
+    border-radius: 12px;
+  }
+
+  .upload-zone input[type="file"] { display: none; }
+
+  .upload-label {
+    display: inline-block;
+    color: var(--text-dim-dark);
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .upload-label strong { color: var(--text-dark); }
+
+  .file-list { margin-top: 16px; text-align: left; }
+
+  .file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel-light);
+    border: 1px solid var(--border-light);
+    color: var(--text-dark);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    margin: 4px 6px 4px 0;
+  }
+
+  .file-chip .remove {
+    color: var(--text-dim-dark);
+    cursor: pointer;
+    font-weight: 700;
+  }
+
+  #results { margin-top: 24px; }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--panel-light-alt);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+
+  .stat-card.highlight {
+    background: var(--text-dark);
+    color: var(--panel-light);
+    border-color: var(--text-dark);
+  }
+
+  .stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim-dark);
+    margin-bottom: 10px;
+    letter-spacing: 0.02em;
+  }
+
+  .stat-card.highlight .stat-label { color: rgba(255,255,255,0.6); }
+
+  .stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  .stat-sub {
+    font-size: 12px;
+    color: var(--text-dim-dark);
+    margin-top: 4px;
+  }
+
+  .stat-card.highlight .stat-sub { color: rgba(255,255,255,0.55); }
+
+  .summary-block {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-dim-dark);
+    margin-bottom: 18px;
+    padding: 0 2px;
+  }
+
+  .row-list {
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .issue {
+    background: var(--panel-light);
+    padding: 14px 18px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .issue:last-child { border-bottom: none; }
+
+  .sev-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+
+  .sev-critical { background: rgba(224,85,74,0.12); color: var(--critical); }
+  .sev-high { background: rgba(224,138,60,0.12); color: var(--high); }
+  .sev-medium { background: rgba(217,178,60,0.15); color: #96780C; }
+  .sev-low { background: rgba(138,144,154,0.15); color: var(--low); }
+
+  .issue-body { flex: 1; }
+
+  .issue-type {
+    font-size: 12px;
+    color: var(--text-dim-dark);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 4px;
+  }
+
+  .issue-detail {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--text-dark);
+  }
+
+  .verdict-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 4px 12px;
+    border-radius: 999px;
+    display: inline-block;
+  }
+
+  .v-block { background: rgba(224,85,74,0.12); color: var(--critical); }
+  .v-changes { background: rgba(224,138,60,0.12); color: var(--high); }
+  .v-comments { background: rgba(217,178,60,0.15); color: #96780C; }
+  .v-approve { background: rgba(127,193,222,0.18); color: var(--accent-ice-deep); }
+
+  .project-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel-light-alt);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .project-banner-left { display: flex; align-items: center; gap: 12px; }
+
+  .project-detail { font-size: 13.5px; color: var(--text-dim-dark); }
+
+  .project-stats {
+    display: flex;
+    gap: 20px;
+    font-size: 13px;
+    color: var(--text-dim-dark);
+  }
+
+  .project-stats strong { color: var(--text-dark); }
+
+  .file-section {
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .file-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dark);
+    background: var(--panel-light-alt);
+  }
+
+  .file-header .chevron {
+    color: var(--text-dim-dark);
+    transition: transform 0.15s ease;
+    font-size: 11px;
+  }
+
+  .file-header.collapsed .chevron { transform: rotate(-90deg); }
+
+  .file-issues-count {
+    margin-left: auto;
+    color: var(--text-dim-dark);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+  }
+
+  .file-content { padding: 16px 18px; background: var(--panel-light); }
+  .file-content.hidden { display: none; }
+
+  .loading, .error, .empty {
+    text-align: center;
+    color: var(--text-dim-dark);
+    padding: 36px 0;
+    font-size: 14px;
+  }
+
+  .error { color: var(--critical); }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border-light);
+    border-top-color: var(--text-dark);
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: middle;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 38px; }
+    .stat-row { grid-template-columns: repeat(2, 1fr); }
+    .app-card { margin-top: -120px; border-radius: 14px; }
+    .hero { padding-bottom: 160px; }
+  }
+</style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <div class="brand">
+        <span class="dot"></span>
+        <div class="brand-text">
+          <span class="brand-name">Verdict</span>
+          <span class="brand-tag">AI CODE REVIEW</span>
+        </div>
+      </div>
+      <button class="nav-cta" onclick="document.querySelector('.app-card').scrollIntoView({behavior:'smooth'})">Try it</button>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Review your code with <em>confidence</em></h1>
+      <p>An autonomous agent retrieves relevant best practices, runs static checks and LLM reasoning together, then reflects on its own findings before giving you a verdict — across one snippet or a whole project, with no one pasting files in one at a time.</p>
+      <div class="hero-actions">
+        <button class="btn-primary" onclick="document.querySelector('.app-card').scrollIntoView({behavior:'smooth'})">Run a review</button>
+        <button class="btn-secondary" onclick="document.querySelector('.app-card').scrollIntoView({behavior:'smooth'})">See how it works</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="app-card">
+    <div class="app-card-header">
+      <div class="tabs">
+        <button class="tab active" id="tab-paste" onclick="switchTab('paste')">Paste Code</button>
+        <button class="tab" id="tab-upload" onclick="switchTab('upload')">Upload Project</button>
+      </div>
+      <div class="cloud-pill">Agent ready</div>
+    </div>
+
+    <div class="app-body">
+      <div id="paste-panel">
+        <textarea id="code-input" placeholder="Paste your code here...">password = "admin123"
+
+def process_items(items, cache=[]):
+    for item in items:
+        cache.append(item)
+    return cache
+
+try:
+    result = eval(input())
+except:
+    pass</textarea>
+        <div class="toolbar">
+          <span class="hint">Any language, any length</span>
+          <button class="run-btn" id="review-btn" onclick="runReview()">Run Review</button>
+        </div>
+      </div>
+
+      <div id="upload-panel" style="display:none;">
+        <div class="upload-zone">
+          <label class="upload-label" for="file-input">
+            <strong>Click to choose files</strong>, or select a whole folder<br>
+            <span style="font-size:12px;">multiple files supported</span>
+          </label>
+          <input type="file" id="file-input" multiple webkitdirectory directory onchange="handleFiles(event)">
+          <div class="file-list" id="file-list"></div>
+        </div>
+        <div class="toolbar">
+          <span class="hint" id="file-count-hint">No files selected</span>
+          <button class="run-btn" id="review-project-btn" onclick="runProjectReview()">Run Project Review</button>
+        </div>
+      </div>
+
+      <div id="results"></div>
+    </div>
+  </div>
+
+<script>
+let selectedFiles = [];
+
+function switchTab(tab) {
+  document.getElementById('tab-paste').classList.toggle('active', tab === 'paste');
+  document.getElementById('tab-upload').classList.toggle('active', tab === 'upload');
+  document.getElementById('paste-panel').style.display = tab === 'paste' ? 'block' : 'none';
+  document.getElementById('upload-panel').style.display = tab === 'upload' ? 'block' : 'none';
+  document.getElementById('results').innerHTML = '';
+}
+
+const CODE_EXTENSIONS = ['.py', '.js', '.jsx', '.ts', '.tsx', '.java', '.c', '.cpp', '.cs', '.go', '.rb', '.php', '.html', '.css'];
+
+function handleFiles(event) {
+  const files = Array.from(event.target.files).filter(f =>
+    CODE_EXTENSIONS.some(ext => f.name.toLowerCase().endsWith(ext))
+  );
+  selectedFiles = files;
+  renderFileList();
+}
+
+function removeFile(index) {
+  selectedFiles.splice(index, 1);
+  renderFileList();
+}
+
+function renderFileList() {
+  const listEl = document.getElementById('file-list');
+  const hintEl = document.getElementById('file-count-hint');
+  listEl.innerHTML = selectedFiles.map((f, i) =>
+    `<span class="file-chip">${f.webkitRelativePath || f.name} <span class="remove" onclick="removeFile(${i})">&times;</span></span>`
+  ).join('');
+  hintEl.textContent = selectedFiles.length === 0
+    ? 'No files selected'
+    : `${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} selected`;
+}
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsText(file);
+  });
+}
+
+async function runProjectReview() {
+  const resultsEl = document.getElementById('results');
+  const btn = document.getElementById('review-project-btn');
+
+  if (selectedFiles.length === 0) {
+    resultsEl.innerHTML = '<div class="error">Select at least one code file first.</div>';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Reviewing...';
+  resultsEl.innerHTML = `<div class="loading"><span class="spinner"></span>Agent is reviewing ${selectedFiles.length} file(s)...</div>`;
+
+  try {
+    const fileContents = await Promise.all(selectedFiles.map(async f => ({
+      filename: f.webkitRelativePath || f.name,
+      content: await readFileAsText(f)
+    })));
+
+    const res = await fetch('/api/review-project', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: fileContents })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      resultsEl.innerHTML = `<div class="error">${data.error || 'Something went wrong.'}</div>`;
+      return;
+    }
+
+    renderProjectResults(data);
+  } catch (err) {
+    resultsEl.innerHTML = `<div class="error">Error: ${err.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Run Project Review';
+  }
+}
+
+function toggleFile(id) {
+  document.getElementById('content-' + id).classList.toggle('hidden');
+  document.getElementById('header-' + id).classList.toggle('collapsed');
+}
+
+function verdictClass(rec) {
+  if (rec.includes('REWORK')) return 'v-block';
+  if (rec.includes('ATTENTION')) return 'v-changes';
+  if (rec.includes('NOTES')) return 'v-comments';
+  if (rec.includes('NOT ENOUGH')) return 'v-comments';
+  return 'v-approve';
+}
+
+function sevClass(sev) {
+  return 'sev-' + (sev || 'low').toLowerCase();
+}
+
+function issueRows(issues) {
+  if (!issues || issues.length === 0) {
+    return '<div class="empty">No issues found.</div>';
+  }
+  return `<div class="row-list">` + issues.map(issue => `
+    <div class="issue">
+      <span class="sev-tag ${sevClass(issue.severity)}">${(issue.severity || '').toUpperCase()}</span>
+      <div class="issue-body">
+        <div class="issue-type">${issue.type} · via ${issue.source}</div>
+        <div class="issue-detail">${issue.detail}</div>
+      </div>
+    </div>
+  `).join('') + `</div>`;
+}
+
+function renderProjectResults(data) {
+  const resultsEl = document.getElementById('results');
+
+  const filesHtml = data.files.map((f, i) => `
+    <div class="file-section">
+      <div class="file-header" id="header-${i}" onclick="toggleFile(${i})">
+        <span class="chevron">▾</span>
+        <span>${f.filename}</span>
+        <span class="verdict-label ${verdictClass(f.recommendation)}">${f.recommendation}</span>
+        <span class="file-issues-count">${f.total_issues} issue${f.total_issues !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="file-content" id="content-${i}">
+        <div class="summary-block">${f.summary || ''}</div>
+        ${issueRows(f.issues_by_severity)}
+      </div>
+    </div>
+  `).join('');
+
+  resultsEl.innerHTML = `
+    <div class="project-banner">
+      <div class="project-banner-left">
+        <span class="verdict-label ${verdictClass(data.project_recommendation)}">${data.project_recommendation}</span>
+        <span class="project-detail">${data.project_detail}</span>
+      </div>
+      <div class="project-stats">
+        <span><strong>${data.total_files}</strong> files reviewed</span>
+        <span><strong>${data.total_issues}</strong> total issues</span>
+      </div>
+    </div>
+    ${filesHtml}
+  `;
+}
+
+async function runReview() {
+  const code = document.getElementById('code-input').value;
+  const resultsEl = document.getElementById('results');
+  const btn = document.getElementById('review-btn');
+
+  if (!code.trim()) {
+    resultsEl.innerHTML = '<div class="error">Paste some code first.</div>';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Reviewing...';
+  resultsEl.innerHTML = '<div class="loading"><span class="spinner"></span>Agent is retrieving guidelines, running static checks, reasoning about your code, and reflecting on its own draft...</div>';
+
+  try {
+    const res = await fetch('/api/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      resultsEl.innerHTML = `<div class="error">${data.error || 'Something went wrong.'}</div>`;
+      return;
+    }
+
+    renderResults(data);
+  } catch (err) {
+    resultsEl.innerHTML = `<div class="error">Network error: ${err.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Run Review';
+  }
+}
+
+function renderResults(data) {
+  const resultsEl = document.getElementById('results');
+
+  resultsEl.innerHTML = `
+    <div class="stat-row">
+      <div class="stat-card highlight">
+        <div class="stat-label">RECOMMENDATION</div>
+        <div class="stat-value" style="font-size:15px;">${data.recommendation}</div>
+        <div class="stat-sub">${data.recommendation_detail}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">TOTAL ISSUES</div>
+        <div class="stat-value">${data.total_issues}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">QUALITY</div>
+        <div class="stat-value" style="font-size:16px; text-transform:capitalize;">${data.overall_quality}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">SOURCES USED</div>
+        <div class="stat-value" style="font-size:16px;">3 tools</div>
+        <div class="stat-sub">static + RAG + LLM</div>
+      </div>
+    </div>
+    <div class="summary-block">${data.summary}</div>
+    ${data.was_revised ? `<div class="summary-block" style="border-color: var(--accent-ice-deep);"><strong>Self-reflection:</strong> ${data.reflection_note}</div>` : ''}
+    ${guidelineChips(data.guidelines_used)}
+    ${issueRows(data.issues_by_severity)}
+  `;
+}
+
+function guidelineChips(guidelines) {
+  if (!guidelines || guidelines.length === 0) return '';
+  return `
+    <div class="summary-block">
+      <strong>Guidelines retrieved for this code (RAG):</strong>
+      <ul style="margin: 8px 0 0; padding-left: 18px;">
+        ${guidelines.map(g => `<li style="margin-bottom:4px;">${g}</li>`).join('')}
+      </ul>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>

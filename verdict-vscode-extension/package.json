@@ -1,0 +1,29 @@
+{
+  "name": "verdict-code-review",
+  "displayName": "Verdict - AI Code Review",
+  "description": "Review the code in your current file with the Verdict agentic AI code reviewer.",
+  "version": "0.0.1",
+  "publisher": "harshita-arora",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": ["Other", "Linters"],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "verdict.reviewCurrentFile",
+        "title": "Verdict: Review Current File"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "verdict.reviewCurrentFile",
+          "group": "navigation"
+        }
+      ]
+    }
+  }
+}
